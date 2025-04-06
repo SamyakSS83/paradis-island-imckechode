@@ -142,8 +142,58 @@ class Trader:
         # else:
         #     orders.append(Order(symbol, sell_at_more_than+1, total_vol_for_instant_sell))
 
-        orders.append(Order(symbol, sell_at_more_than+1, -POS_LIMITS[symbol]-position)) #position+x = -pos_limit
-        orders.append(Order(symbol, buy_at_less_than+1, POS_LIMITS[symbol]-position))
+        orders.append(Order(symbol, sell_at_more_than+2, -POS_LIMITS[symbol]-position)) #position+x = -pos_limit
+        orders.append(Order(symbol, buy_at_less_than-2, POS_LIMITS[symbol]-position))
+        return orders
+
+    def run_kelp(self, order_depths: OrderDepth, position: Position, last_5_trades) -> List[Order]:
+        symbol = "KELP"
+        orders: List[Order] = [];
+        if len(last_5_trades) == 5:
+            intercept = 83.44
+            coeffs = [0.1251954 , 0.10278807, 0.12282752, 0.29186807 ,0.31594948]
+        
+            my_pred = intercept
+            for i in range(len(last_5_trades)):
+                my_pred += last_5_trades[i][0]*coeffs[i] #last_5_trades: [[trade.price, trade.quantity, trade.timestamp], ...]
+            # my_pred = sum(map(lambda x: x[0]*x[1], last_5_trades))/sum(map(lambda x: x[1], last_5_trades))
+            buy_at_less_than = round(my_pred)
+            sell_at_more_than = round(my_pred)
+
+            print("prediction: ", my_pred, file=open("testing_out.txt", "a"))
+            print("last_5_trades: ", last_5_trades, file=open("testing_out.txt", "a"))
+
+            buy_orders = sorted(order_depths.buy_orders.items(), reverse=True)
+            sell_orders = sorted(order_depths.sell_orders.items())
+
+            total_vol_for_instant_sell = 0
+            for (price, amt) in buy_orders: #We decide the best people to sell to based on the buy orders.
+                print("While deciding sells, I see: ", price, amt, file=open("testing_out.txt", "a"))
+                if (price>sell_at_more_than):
+                    print("It is good", file=open("testing_out.txt", "a"))
+                    total_vol_for_instant_sell += amt
+                
+            if position-total_vol_for_instant_sell < -POS_LIMITS[symbol]:
+                orders.append(Order(symbol, sell_at_more_than+1, -position-POS_LIMITS[symbol]))
+            else:
+                orders.append(Order(symbol, sell_at_more_than+1, -total_vol_for_instant_sell))
+                
+            total_vol_for_instant_buy = 0
+            for (price, amt) in sell_orders: #We decide the best people to buy from based on the sell orders.
+                assert(amt<=0)
+                if (price<buy_at_less_than):
+                    total_vol_for_instant_buy -= amt
+            
+            if total_vol_for_instant_buy+position > POS_LIMITS[symbol]:
+                orders.append(Order(symbol, buy_at_less_than-1, POS_LIMITS[symbol]-position))
+            else:
+                orders.append(Order(symbol, buy_at_less_than-1, total_vol_for_instant_buy))
+            print("orders: ", orders, file=open("testing_out.txt", "a"))
+            print("position: ", orders, file=open("testing_out.txt", "a"))
+            print("total_vol_for_instant_buy: ", total_vol_for_instant_buy, file=open("testing_out.txt", "a"))
+            print("total_vol_for_instant_sell: ", total_vol_for_instant_sell, file=open("testing_out.txt", "a"))
+            # orders.append(Order(symbol, sell_at_more_than+1, -POS_LIMITS[symbol]-position)) #position+x = -pos_limit
+            # orders.append(Order(symbol, buy_at_less_than-1, POS_LIMITS[symbol]-position))
         return orders
     
 
@@ -156,17 +206,21 @@ class Trader:
         """
         # Initialize the method output dict as an empty dict
         result = {}
-        print(state.traderData, file=open("testing_out.txt","a"))
+        # print(state.traderData, file=open("testing_out.txt","a"))
         if state.traderData != "":
             last_5_kelp_trades = json.loads(state.traderData)
         else:
             last_5_kelp_trades = []
+
         # conversions = 0
 
         # Iterate over all the keys (the available products) contained in the order dephts
         for product in state.order_depths.keys():
                 if product == "RAINFOREST_RESIN":
                     result[product] = self.run_raisin(state.order_depths[product] , state.position.get(product, 0))
+                    continue
+                if product == "KELP":
+                    result[product] = self.run_kelp(state.order_depths[product] , state.position.get(product, 0), last_5_kelp_trades)
                     continue
                 # Retrieve the Order Depth containing all the market BUY and SELL orders
                 order_depth: OrderDepth = state.order_depths[product]
