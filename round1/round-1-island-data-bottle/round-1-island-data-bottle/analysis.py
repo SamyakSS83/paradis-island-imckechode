@@ -80,9 +80,9 @@ freq = np.fft.fftfreq(N, d=time_diff)  # Using actual sampling interval
 # Plot the FFT magnitude on a log scale
 plt.figure(figsize=(12, 8))
 plt.subplot(2, 1, 1)
-# Only plot positive frequencies and use log scale for magnitude
+# Only plot positive frequencies on a normal scale
 magnitude = np.abs(fft_result[:N//2])
-plt.semilogy(freq[:N//2], magnitude)
+plt.plot(freq[:N//2], magnitude)
 plt.title('FFT Magnitude Spectrum of SQUID_INK Prices (Log Scale)')
 plt.xlabel('Frequency (1/time unit)')
 plt.ylabel('Magnitude (log scale)')
