@@ -148,13 +148,40 @@ class Trader:
         orders.append(Order(symbol, buy_at_less_than-2, POS_LIMITS[symbol]-position))
         return orders
 
+    
+    def run_kelp1(self, order_depths: OrderDepth, position: Position) -> List[Order]:
+        symbol = "KELP"
+        orders: List[Order] = [];
+        buy_at_less_than = 2019
+        sell_at_more_than = 2019
+
+        # buy_orders = sorted(order_depths.buy_orders.items(), reverse=True)
+        # sell_orders = sorted(order_depths.sell_orders.items())
+
+        # total_vol_for_instant_sell = 0
+        # for (price, amt) in buy_orders: #We decide the best people to sell to based on the buy orders.
+        #     if (price>sell_at_more_than):
+        #         total_vol_for_instant_sell += amt
+            
+        # if position-total_vol_for_instant_sell >= -POS_LIMITS[symbol]:
+        #     orders.append(Order(symbol, sell_at_more_than+1, position-POS_LIMITS[symbol]))
+        # else:
+        #     orders.append(Order(symbol, sell_at_more_than+1, total_vol_for_instant_sell))
+
+        orders.append(Order(symbol, sell_at_more_than+3, -POS_LIMITS[symbol]-position)) #position+x = -pos_limit
+        orders.append(Order(symbol, buy_at_less_than-4, POS_LIMITS[symbol]-position))
+        return orders
+
     def run_kelp(self, order_depths: OrderDepth, position: Position, last_n_trades) -> List[Order]:
         symbol = "KELP"
         orders: List[Order] = [];
         if len(last_n_trades) == 10:
             intercept = 16.55687365458857
             coeffs = [-0.00442061, -0.01372848, -0.00291883,  0.03911388,  0.04284338,  0.06904266, 0.11434546,  0.11314294,  0.25076363,  0.38360758]
-        
+            # intercept = 17.59482603537458
+            # coeffs = [0.09143235 ,0.12958247, 0.12058332, 0.25956105, 0.39011803]
+            # intercept = 18.408089860604377
+            # coeffs = [0.16526783 ,0.14608133, 0.27304808 ,0.4064776 ]
             my_pred = intercept
             for i in range(len(last_n_trades)):
                 my_pred += last_n_trades[i]*coeffs[i] #last_n_trades: [[trade.price, trade.quantity, trade.timestamp], ...]
@@ -236,6 +263,7 @@ class Trader:
                     continue
                 if product == "KELP":
                     result[product] = self.run_kelp(state.order_depths[product] , state.position.get(product, 0), last_n_kelp_trades)
+                    # result[product] = self.run_kelp1(state.order_depths[product] , state.position.get(product, 0))
                     continue
                 # Retrieve the Order Depth containing all the market BUY and SELL orders
                 order_depth: OrderDepth = state.order_depths[product]
