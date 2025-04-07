@@ -146,25 +146,28 @@ class Trader:
         orders.append(Order(symbol, buy_at_less_than-2, POS_LIMITS[symbol]-position))
         return orders
 
-    def run_kelp(self, order_depths: OrderDepth, position: Position, last_5_trades) -> List[Order]:
+    def run_kelp(self, order_depths: OrderDepth, position: Position, last_n_trades) -> List[Order]:
         symbol = "KELP"
         orders: List[Order] = [];
-        if len(last_5_trades) == 5:
-            intercept = 83.44
-            coeffs = [0.1251954 , 0.10278807, 0.12282752, 0.29186807 ,0.31594948]
+        if len(last_n_trades) == 10:
+            intercept = 16.55687365458857
+            coeffs = [-0.00442061, -0.01372848, -0.00291883,  0.03911388,  0.04284338,  0.06904266,
+  0.11434546,  0.11314294,  0.25076363,  0.38360758]
         
             my_pred = intercept
-            for i in range(len(last_5_trades)):
-                my_pred += last_5_trades[i][0]*coeffs[i] #last_5_trades: [[trade.price, trade.quantity, trade.timestamp], ...]
-            # my_pred = sum(map(lambda x: x[0]*x[1], last_5_trades))/sum(map(lambda x: x[1], last_5_trades))
+            for i in range(len(last_n_trades)):
+                my_pred += last_n_trades[i]*coeffs[i] #last_n_trades: [[trade.price, trade.quantity, trade.timestamp], ...]
+            # my_pred = sum(last_n_trades[-1:])/len(last_n_trades[-1:])
             buy_at_less_than = round(my_pred)
             sell_at_more_than = round(my_pred)
 
             print("prediction: ", my_pred, file=open("testing_out.txt", "a"))
-            print("last_5_trades: ", last_5_trades, file=open("testing_out.txt", "a"))
+            print("last_n_trades: ", last_n_trades, file=open("testing_out.txt", "a"))
 
             buy_orders = sorted(order_depths.buy_orders.items(), reverse=True)
             sell_orders = sorted(order_depths.sell_orders.items())
+
+            buy_sell_limit = 50 #Do not place orders of quantity more than this to manage product placement
 
             total_vol_for_instant_sell = 0
             for (price, amt) in buy_orders: #We decide the best people to sell to based on the buy orders.
@@ -174,9 +177,9 @@ class Trader:
                     total_vol_for_instant_sell += amt
                 
             if position-total_vol_for_instant_sell < -POS_LIMITS[symbol]:
-                orders.append(Order(symbol, sell_at_more_than+1, -position-POS_LIMITS[symbol]))
+                orders.append(Order(symbol, sell_at_more_than+1, -min(position+POS_LIMITS[symbol], buy_sell_limit)))
             else:
-                orders.append(Order(symbol, sell_at_more_than+1, -total_vol_for_instant_sell))
+                orders.append(Order(symbol, sell_at_more_than+1, -min(total_vol_for_instant_sell, buy_sell_limit)))
                 
             total_vol_for_instant_buy = 0
             for (price, amt) in sell_orders: #We decide the best people to buy from based on the sell orders.
@@ -185,9 +188,9 @@ class Trader:
                     total_vol_for_instant_buy -= amt
             
             if total_vol_for_instant_buy+position > POS_LIMITS[symbol]:
-                orders.append(Order(symbol, buy_at_less_than-1, POS_LIMITS[symbol]-position))
+                orders.append(Order(symbol, buy_at_less_than-1, min(POS_LIMITS[symbol]-position, buy_sell_limit)))
             else:
-                orders.append(Order(symbol, buy_at_less_than-1, total_vol_for_instant_buy))
+                orders.append(Order(symbol, buy_at_less_than-1, min(total_vol_for_instant_buy, buy_sell_limit)))
             print("orders: ", orders, file=open("testing_out.txt", "a"))
             print("position: ", orders, file=open("testing_out.txt", "a"))
             print("total_vol_for_instant_buy: ", total_vol_for_instant_buy, file=open("testing_out.txt", "a"))
@@ -208,9 +211,9 @@ class Trader:
         result = {}
         # print(state.traderData, file=open("testing_out.txt","a"))
         if state.traderData != "":
-            last_5_kelp_trades = json.loads(state.traderData)
+            last_n_kelp_trades = json.loads(state.traderData)
         else:
-            last_5_kelp_trades = []
+            last_n_kelp_trades = []
 
         # conversions = 0
 
@@ -220,7 +223,7 @@ class Trader:
                     result[product] = self.run_raisin(state.order_depths[product] , state.position.get(product, 0))
                     continue
                 if product == "KELP":
-                    result[product] = self.run_kelp(state.order_depths[product] , state.position.get(product, 0), last_5_kelp_trades)
+                    result[product] = self.run_kelp(state.order_depths[product] , state.position.get(product, 0), last_n_kelp_trades)
                     continue
                 # Retrieve the Order Depth containing all the market BUY and SELL orders
                 order_depth: OrderDepth = state.order_depths[product]
@@ -264,14 +267,22 @@ class Trader:
                 # Add all the above the orders to the result dict
                 result[product] = orders
         
-        kelp_trades: List[Trade] = state.market_trades.get("KELP", [])
-        kelp_trades.sort(key=lambda x: x.timestamp, reverse=True)
-        if len(kelp_trades) >= 5:
-            trader_data = json.dumps(map(lambda x: [x.price, x.quantity, x.timestamp], kelp_trades[:5]))
-        else:
-            # trader_data = "SomethingHere"
-            trader_data = json.dumps(list(map(lambda x: [x.price, x.quantity, x.timestamp], kelp_trades))+last_5_kelp_trades[:5-len(kelp_trades)])
+        # kelp_trades: List[Trade] = state.market_trades.get("KELP", [])
+        # kelp_trades.sort(key=lambda x: x.timestamp, reverse=True)
+        # if len(kelp_trades) >= 5:
+        #     trader_data = json.dumps(map(lambda x: [x.price, x.quantity, x.timestamp], kelp_trades[:5]))
+        # else:
+        #     # trader_data = "SomethingHere"
+        #     trader_data = json.dumps(list(map(lambda x: [x.price, x.quantity, x.timestamp], kelp_trades))+last_n_kelp_trades[:5-len(kelp_trades)])
 
+        highest_kelp_buy = max(state.order_depths["KELP"].buy_orders.keys())
+        lowest_kelp_sell = min(state.order_depths["KELP"].sell_orders.keys())
+        mid_val = (highest_kelp_buy+lowest_kelp_sell)/2
+        
+        last_n_kelp_trades.append(mid_val)
+        trader_data = json.dumps(last_n_kelp_trades[-10:])
+        print("last_n_kelp_trades: ", last_n_kelp_trades, file=open("testing_out.txt", "a"))
+        print("trader_Data: ", trader_data, file=open("testing_out.txt", "a"))
         
         conversions = 1 
 
