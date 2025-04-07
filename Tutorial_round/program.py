@@ -177,9 +177,16 @@ class Trader:
                     total_vol_for_instant_sell += amt
                 
             if position-total_vol_for_instant_sell < -POS_LIMITS[symbol]:
-                orders.append(Order(symbol, sell_at_more_than+1, -min(position+POS_LIMITS[symbol], buy_sell_limit)))
+                orders.append(Order(symbol, sell_at_more_than+1, round(-min(position+POS_LIMITS[symbol], buy_sell_limit)*0.6)))
+                orders.append(Order(symbol, sell_at_more_than+0, round(-min(position+POS_LIMITS[symbol], buy_sell_limit)*0.2)))
+                orders.append(Order(symbol, sell_at_more_than+2, round(-min(position+POS_LIMITS[symbol], buy_sell_limit)*0.2)))
+
+            
             else:
-                orders.append(Order(symbol, sell_at_more_than+1, -min(total_vol_for_instant_sell, buy_sell_limit)))
+                orders.append(Order(symbol, sell_at_more_than+1, round(-min(total_vol_for_instant_sell, buy_sell_limit)*0.6)))
+                orders.append(Order(symbol, sell_at_more_than+0, round(-min(total_vol_for_instant_sell, buy_sell_limit)*0.2)))
+                orders.append(Order(symbol, sell_at_more_than+2, round(-min(total_vol_for_instant_sell, buy_sell_limit)*0.2)))
+
                 
             total_vol_for_instant_buy = 0
             for (price, amt) in sell_orders: #We decide the best people to buy from based on the sell orders.
@@ -188,9 +195,13 @@ class Trader:
                     total_vol_for_instant_buy -= amt
             
             if total_vol_for_instant_buy+position > POS_LIMITS[symbol]:
-                orders.append(Order(symbol, buy_at_less_than-1, min(POS_LIMITS[symbol]-position, buy_sell_limit)))
+                orders.append(Order(symbol, buy_at_less_than-1, round(min(POS_LIMITS[symbol]-position, buy_sell_limit)*0.6)))
+                orders.append(Order(symbol, buy_at_less_than+0, round(min(POS_LIMITS[symbol]-position, buy_sell_limit)*0.2)))
+                orders.append(Order(symbol, buy_at_less_than-2, round(min(POS_LIMITS[symbol]-position, buy_sell_limit)*0.2)))
             else:
-                orders.append(Order(symbol, buy_at_less_than-1, min(total_vol_for_instant_buy, buy_sell_limit)))
+                orders.append(Order(symbol, buy_at_less_than-1, round(min(total_vol_for_instant_buy, buy_sell_limit)*0.6)))
+                orders.append(Order(symbol, buy_at_less_than+0, round(min(total_vol_for_instant_buy, buy_sell_limit)*0.2)))
+                orders.append(Order(symbol, buy_at_less_than-2, round(min(total_vol_for_instant_buy, buy_sell_limit)*0.2)))
             print("orders: ", orders, file=open("testing_out.txt", "a"))
             print("position: ", orders, file=open("testing_out.txt", "a"))
             print("total_vol_for_instant_buy: ", total_vol_for_instant_buy, file=open("testing_out.txt", "a"))
