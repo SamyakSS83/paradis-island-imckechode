@@ -352,11 +352,16 @@ class Trader:
         #     # trader_data = "SomethingHere"
         #     trader_data = json.dumps(list(map(lambda x: [x.price, x.quantity, x.timestamp], kelp_trades))+last_n_kelp_trades[:5-len(kelp_trades)])
 
-        highest_kelp_buy = max(state.order_depths["KELP"].buy_orders.keys())
-        lowest_kelp_sell = min(state.order_depths["KELP"].sell_orders.keys())
-        mid_val = (highest_kelp_buy+lowest_kelp_sell)/2
+        # highest_kelp_buy = max(state.order_depths["KELP"].buy_orders.keys())
+        # lowest_kelp_sell = min(state.order_depths["KELP"].sell_orders.keys())
+        # mid_val = (highest_kelp_buy+lowest_kelp_sell)/2
         
+        mid_val = (sum(map(lambda x: x[0]*x[1], state.order_depths["KELP"].buy_orders.items()))+sum(map(lambda x: x[0]*(-x[1]), state.order_depths["KELP"].sell_orders.items()))) / (sum(map(lambda x: x[1], state.order_depths["KELP"].buy_orders.items()))+sum(map(lambda x: (-x[1]), state.order_depths["KELP"].sell_orders.items())))
+        # print("mid_val: ", mid_val, file=open("testing_out.txt", "a"))
         last_n_kelp_trades.append(mid_val)
+
+        
+        # last_n_kelp_trades.append(mid_val)
         trader_data = json.dumps(last_n_kelp_trades[-7:])
         # debug_print("last_n_kelp_trades: ", last_n_kelp_trades, file=open("testing_out.txt", "a"))
         # debug_print("trader_Data: ", trader_data, file=open("testing_out.txt", "a"))

@@ -1,5 +1,5 @@
 lines = []
-with open("samyak.log", "r") as f:
+with open("Tutorial_round/samyak.log", "r") as f:
     lines = f.readlines()
 
 l = []
@@ -22,7 +22,7 @@ for i in range(10006,14005):
     r.append((timestamp,mid_price))
 
 
-with open("samyak.csv", "w") as f:
+with open("Tutorial_round/samyak.csv", "w") as f:
     f.write("timestamp,price\n")
     for i in l:
         f.write(f"{i[0]},{i[1]}\n")
