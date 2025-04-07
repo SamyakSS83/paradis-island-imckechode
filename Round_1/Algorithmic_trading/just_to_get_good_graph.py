@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
 
-prices1 = pd.read_csv(r'./round-1-island-data-bottle/round-1-island-data-bottle/prices_round_1_day_-2.csv',sep=';')
-prices2 = pd.read_csv(r'./round-1-island-data-bottle/round-1-island-data-bottle/prices_round_1_day_-1.csv',sep=';')
-prices3 = pd.read_csv(r'./round-1-island-data-bottle/round-1-island-data-bottle/prices_round_1_day_0.csv',sep=';')
+prices1 = pd.read_csv(r'Round_1\Algorithmic_trading\round-1-island-data-bottle\round-1-island-data-bottle\prices_round_1_day_-2.csv',sep=';')
+prices2 = pd.read_csv(r'Round_1\Algorithmic_trading\round-1-island-data-bottle\round-1-island-data-bottle\prices_round_1_day_-1.csv',sep=';')
+prices3 = pd.read_csv(r'Round_1\Algorithmic_trading\round-1-island-data-bottle\round-1-island-data-bottle\prices_round_1_day_0.csv',sep=';')
 
 import matplotlib.pyplot as plt
 # Concatenate all dataframes
