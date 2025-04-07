@@ -1,8 +1,10 @@
 from typing import Dict, List, Any
 from datamodel import Listing, Observation, Order, OrderDepth, ProsperityEncoder, Symbol, Trade, TradingState, Position
 import json
-
-
+f=1
+def debug_print(a,f):
+    if f:
+        print(a)
 POS_LIMITS = {"RAINFOREST_RESIN": 50, "KELP": 50}
 
 class Logger:
@@ -151,8 +153,7 @@ class Trader:
         orders: List[Order] = [];
         if len(last_n_trades) == 10:
             intercept = 16.55687365458857
-            coeffs = [-0.00442061, -0.01372848, -0.00291883,  0.03911388,  0.04284338,  0.06904266,
-  0.11434546,  0.11314294,  0.25076363,  0.38360758]
+            coeffs = [-0.00442061, -0.01372848, -0.00291883,  0.03911388,  0.04284338,  0.06904266, 0.11434546,  0.11314294,  0.25076363,  0.38360758]
         
             my_pred = intercept
             for i in range(len(last_n_trades)):
@@ -161,8 +162,8 @@ class Trader:
             buy_at_less_than = round(my_pred)
             sell_at_more_than = round(my_pred)
 
-            print("prediction: ", my_pred, file=open("testing_out.txt", "a"))
-            print("last_n_trades: ", last_n_trades, file=open("testing_out.txt", "a"))
+            # debug_print("prediction: ", my_pred, file=open("testing_out.txt", "a"))
+            # debug_print("last_n_trades: ", last_n_trades, file=open("testing_out.txt", "a"))
 
             buy_orders = sorted(order_depths.buy_orders.items(), reverse=True)
             sell_orders = sorted(order_depths.sell_orders.items())
@@ -171,21 +172,21 @@ class Trader:
 
             total_vol_for_instant_sell = 0
             for (price, amt) in buy_orders: #We decide the best people to sell to based on the buy orders.
-                print("While deciding sells, I see: ", price, amt, file=open("testing_out.txt", "a"))
+                # debug_print("While deciding sells, I see: ", price, amt, file=open("testing_out.txt", "a"))
                 if (price>sell_at_more_than):
-                    print("It is good", file=open("testing_out.txt", "a"))
+                    # debug_print("It is good", file=open("testing_out.txt", "a"))
                     total_vol_for_instant_sell += amt
                 
-            if position-total_vol_for_instant_sell < -POS_LIMITS[symbol]:
-                orders.append(Order(symbol, sell_at_more_than+1, round(-min(position+POS_LIMITS[symbol], buy_sell_limit)*0.6)))
-                orders.append(Order(symbol, sell_at_more_than+0, round(-min(position+POS_LIMITS[symbol], buy_sell_limit)*0.2)))
-                orders.append(Order(symbol, sell_at_more_than+2, round(-min(position+POS_LIMITS[symbol], buy_sell_limit)*0.2)))
+            # if position-total_vol_for_instant_sell < -POS_LIMITS[symbol]:
+            #     orders.append(Order(symbol, sell_at_more_than+1, round(-min(position+POS_LIMITS[symbol], buy_sell_limit)*0.8)))
+            #     orders.append(Order(symbol, sell_at_more_than+0, round(-min(position+POS_LIMITS[symbol], buy_sell_limit)*0.2)))
+            #     orders.append(Order(symbol, sell_at_more_than+2, round(-min(position+POS_LIMITS[symbol], buy_sell_limit)*0.2)))
 
             
-            else:
-                orders.append(Order(symbol, sell_at_more_than+1, round(-min(total_vol_for_instant_sell, buy_sell_limit)*0.6)))
-                orders.append(Order(symbol, sell_at_more_than+0, round(-min(total_vol_for_instant_sell, buy_sell_limit)*0.2)))
-                orders.append(Order(symbol, sell_at_more_than+2, round(-min(total_vol_for_instant_sell, buy_sell_limit)*0.2)))
+            # else:
+            #     orders.append(Order(symbol, sell_at_more_than+1, round(-min(total_vol_for_instant_sell, buy_sell_limit)*0.8)))
+            #     orders.append(Order(symbol, sell_at_more_than+0, round(-min(total_vol_for_instant_sell, buy_sell_limit)*0.2)))
+            #     orders.append(Order(symbol, sell_at_more_than+2, round(-min(total_vol_for_instant_sell, buy_sell_limit)*0.2)))
 
                 
             total_vol_for_instant_buy = 0
@@ -194,20 +195,20 @@ class Trader:
                 if (price<buy_at_less_than):
                     total_vol_for_instant_buy -= amt
             
-            if total_vol_for_instant_buy+position > POS_LIMITS[symbol]:
-                orders.append(Order(symbol, buy_at_less_than-1, round(min(POS_LIMITS[symbol]-position, buy_sell_limit)*0.6)))
-                orders.append(Order(symbol, buy_at_less_than+0, round(min(POS_LIMITS[symbol]-position, buy_sell_limit)*0.2)))
-                orders.append(Order(symbol, buy_at_less_than-2, round(min(POS_LIMITS[symbol]-position, buy_sell_limit)*0.2)))
-            else:
-                orders.append(Order(symbol, buy_at_less_than-1, round(min(total_vol_for_instant_buy, buy_sell_limit)*0.6)))
-                orders.append(Order(symbol, buy_at_less_than+0, round(min(total_vol_for_instant_buy, buy_sell_limit)*0.2)))
-                orders.append(Order(symbol, buy_at_less_than-2, round(min(total_vol_for_instant_buy, buy_sell_limit)*0.2)))
-            print("orders: ", orders, file=open("testing_out.txt", "a"))
-            print("position: ", orders, file=open("testing_out.txt", "a"))
-            print("total_vol_for_instant_buy: ", total_vol_for_instant_buy, file=open("testing_out.txt", "a"))
-            print("total_vol_for_instant_sell: ", total_vol_for_instant_sell, file=open("testing_out.txt", "a"))
-            # orders.append(Order(symbol, sell_at_more_than+1, -POS_LIMITS[symbol]-position)) #position+x = -pos_limit
-            # orders.append(Order(symbol, buy_at_less_than-1, POS_LIMITS[symbol]-position))
+            # if total_vol_for_instant_buy+position > POS_LIMITS[symbol]:
+            #     orders.append(Order(symbol, buy_at_less_than-1, round(min(POS_LIMITS[symbol]-position, buy_sell_limit)*0.8)))
+            #     orders.append(Order(symbol, buy_at_less_than+0, round(min(POS_LIMITS[symbol]-position, buy_sell_limit)*0.2)))
+            #     orders.append(Order(symbol, buy_at_less_than-2, round(min(POS_LIMITS[symbol]-position, buy_sell_limit)*0.2)))
+            # else:
+            #     orders.append(Order(symbol, buy_at_less_than-1, round(min(total_vol_for_instant_buy, buy_sell_limit)*0.8)))
+            #     orders.append(Order(symbol, buy_at_less_than+0, round(min(total_vol_for_instant_buy, buy_sell_limit)*0.2)))
+            #     orders.append(Order(symbol, buy_at_less_than-2, round(min(total_vol_for_instant_buy, buy_sell_limit)*0.2)))
+            # debug_print("orders: ", orders, file=open("testing_out.txt", "a"))
+            # debug_print("position: ", orders, file=open("testing_out.txt", "a"))
+            # debug_print("total_vol_for_instant_buy: ", total_vol_for_instant_buy, file=open("testing_out.txt", "a"))
+            # debug_print("total_vol_for_instant_sell: ", total_vol_for_instant_sell, file=open("testing_out.txt", "a"))
+            orders.append(Order(symbol, sell_at_more_than+1, -POS_LIMITS[symbol]-position)) #position+x = -pos_limit
+            orders.append(Order(symbol, buy_at_less_than-1, POS_LIMITS[symbol]-position))
         return orders
     
 
@@ -220,7 +221,7 @@ class Trader:
         """
         # Initialize the method output dict as an empty dict
         result = {}
-        # print(state.traderData, file=open("testing_out.txt","a"))
+        # debug_print(state.traderData, file=open("testing_out.txt","a"))
         if state.traderData != "":
             last_n_kelp_trades = json.loads(state.traderData)
         else:
@@ -261,7 +262,7 @@ class Trader:
                         # The code below therefore sends a BUY order at the price level of the ask,
                         # with the same quantity
                         # We expect this order to trade with the sell order
-                        # print("BUY", str(-best_ask_volume) + "x", best_ask)
+                        # debug_print("BUY", str(-best_ask_volume) + "x", best_ask)
                         orders.append(Order(product, best_ask, -best_ask_volume))
 
                 # The below code block is similar to the one above,
@@ -272,7 +273,7 @@ class Trader:
                     best_bid = max(order_depth.buy_orders.keys())
                     best_bid_volume = order_depth.buy_orders[best_bid]
                     if best_bid > acceptable_price:
-                        # print("SELL", str(best_bid_volume) + "x", best_bid)
+                        # debug_print("SELL", str(best_bid_volume) + "x", best_bid)
                         orders.append(Order(product, best_bid, -best_bid_volume))
 
                 # Add all the above the orders to the result dict
@@ -292,8 +293,8 @@ class Trader:
         
         last_n_kelp_trades.append(mid_val)
         trader_data = json.dumps(last_n_kelp_trades[-10:])
-        print("last_n_kelp_trades: ", last_n_kelp_trades, file=open("testing_out.txt", "a"))
-        print("trader_Data: ", trader_data, file=open("testing_out.txt", "a"))
+        # debug_print("last_n_kelp_trades: ", last_n_kelp_trades, file=open("testing_out.txt", "a"))
+        # debug_print("trader_Data: ", trader_data, file=open("testing_out.txt", "a"))
         
         conversions = 1 
 
