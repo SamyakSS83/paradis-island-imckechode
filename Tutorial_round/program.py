@@ -133,6 +133,8 @@ class Trader:
         sell_orders_placed_quantity = 0
         buy_orders_placed_quantity = 0
 
+        # Order(symbol, )
+
         buy_orders = sorted(order_depths.buy_orders.items(), reverse=True)
         sell_orders = sorted(order_depths.sell_orders.items())
 
@@ -141,8 +143,12 @@ class Trader:
 
         total_vol_for_instant_sell = 0
         best_bid, best_bid_amt = buy_orders[0]
-        if (best_bid>sell_at_more_than):
-            total_vol_for_instant_sell += best_bid_amt
+        total_vol_for_instant_sell = sum(x[1] for x in order_depths.buy_orders.items() if (x[0]>sell_at_more_than))
+        # print("trades we instant sell to: ", list(x for x in order_depths.buy_orders.items() if (x[0]>sell_at_more_than)), file=open("testing_out.txt", "a"))
+
+        # if (best_bid>sell_at_more_than):
+        #     total_vol_for_instant_sell = best_bid_amt
+        #     print("(price, quant) ", (best_bid, best_bid_amt), file=open("testing_out.txt", "a"))
             
         selling_price_for_challenge = max(sell_at_more_than+1, min(list(x for x in order_depths.sell_orders.keys() if (x > sell_at_more_than+1)), default=sell_at_more_than+1)-1)
             
@@ -162,6 +168,9 @@ class Trader:
         if (best_ask<buy_at_less_than):
             total_vol_for_instant_buy -= best_ask_amt
 
+        total_vol_for_instant_buy = -sum(x[1] for x in order_depths.sell_orders.items() if (x[0]<buy_at_less_than))
+
+
         buying_price_for_challenge = min(buy_at_less_than-1, max(list(x for x in order_depths.buy_orders.keys() if (x < buy_at_less_than-1)), default=buy_at_less_than-1)+1)
         # print("buying_price_for_challenge: ", buying_price_for_challenge, list(x for x in order_depths.buy_orders.keys() if (x < buy_at_less_than-1)),  order_depths.buy_orders.keys(), file=open("testing_out.txt", "a"))
         
@@ -176,7 +185,6 @@ class Trader:
             orders.append(Order(symbol, buying_price_for_challenge, can_place_this_many_more))
 
         return orders
-
     
     def run_kelp1(self, order_depths: OrderDepth, position: Position) -> List[Order]:
         symbol = "KELP"
