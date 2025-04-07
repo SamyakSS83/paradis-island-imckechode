@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 # Load the CSV file
-file_path = 'prices_round_1_day_0.csv'
+file_path = 'prices_round_1_day_-1.csv'
 data = pd.read_csv(file_path)
 
 import matplotlib.pyplot as plt
@@ -14,7 +14,7 @@ data.columns = ['day', 'timestamp', 'product', 'bid_price_1', 'bid_volume_1', 'b
                 'ask_price_1', 'ask_volume_1', 'ask_price_2', 'ask_volume_2', 'ask_price_3', 'ask_volume_3', 'mid_price', 'profit_and_loss']
 
 # Filter the data for the product SQUID_INK
-squid_ink_data = data[data['product'] == 'SQUID_INK']
+squid_ink_data = data[data['product'] == 'RAINFOREST_RESIN']
 
 # Convert timestamp and mid_price to numeric for plotting
 squid_ink_data['timestamp'] = pd.to_numeric(squid_ink_data['timestamp'])
@@ -60,10 +60,11 @@ rmse_rolling_avg = np.sqrt(mse_rolling_avg)
 print(f"Root Mean Squared Error (RMSE) for 5-period Moving Average model: {rmse_rolling_avg:.4f}")
 
 # Convert mid_price to a numpy array for FFT
-prices = squid_ink_data['mid_price'].to_numpy()
+# prices = squid_ink_data['mid_price'].to_numpy()
 
 # Calculate the actual sampling rate based on timestamps
 time_diff = squid_ink_data['timestamp'].diff().mean()
+prices = squid_ink_data['timestamp'].to_numpy()
 sampling_rate = 1 / time_diff if time_diff > 0 else 1
 print(f"Effective sampling rate: 1 sample per {time_diff} time units")
 
