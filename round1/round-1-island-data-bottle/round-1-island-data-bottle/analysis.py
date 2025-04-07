@@ -21,28 +21,28 @@ squid_ink_data['timestamp'] = pd.to_numeric(squid_ink_data['timestamp'])
 squid_ink_data['mid_price'] = pd.to_numeric(squid_ink_data['mid_price'])
 
 # Plot the price of SQUID_INK
-plt.figure(figsize=(10, 6))
-plt.plot(squid_ink_data['timestamp'], squid_ink_data['mid_price'], label='SQUID_INK Price', color='blue')
-plt.xlabel('Timestamp')
-plt.ylabel('Price')
-plt.title('Price of SQUID_INK Over Time')
-plt.legend()
-plt.grid()
-plt.show()
+# plt.figure(figsize=(10, 6))
+# plt.plot(squid_ink_data['timestamp'], squid_ink_data['mid_price'], label='SQUID_INK Price', color='blue')
+# plt.xlabel('Timestamp')
+# plt.ylabel('Price')
+# plt.title('Price of SQUID_INK Over Time')
+# plt.legend()
+# plt.grid()
+# plt.show()
 
 # Calculate the rolling average of past 5 values
 squid_ink_data['rolling_avg_5'] = squid_ink_data['mid_price'].rolling(window=5).mean()
 
 # Plot the original price and the rolling average
-plt.figure(figsize=(12, 6))
-plt.plot(squid_ink_data['timestamp'], squid_ink_data['mid_price'], label='SQUID_INK Mid Price', alpha=0.6)
-plt.plot(squid_ink_data['timestamp'], squid_ink_data['rolling_avg_5'], label='5-Period Moving Average', linewidth=2)
-plt.xlabel('Timestamp')
-plt.ylabel('Price')
-plt.title('SQUID_INK Price and 5-Period Moving Average')
-plt.legend()
-plt.grid(True)
-plt.show()
+# plt.figure(figsize=(12, 6))
+# plt.plot(squid_ink_data['timestamp'], squid_ink_data['mid_price'], label='SQUID_INK Mid Price', alpha=0.6)
+# plt.plot(squid_ink_data['timestamp'], squid_ink_data['rolling_avg_5'], label='5-Period Moving Average', linewidth=2)
+# plt.xlabel('Timestamp')
+# plt.ylabel('Price')
+# plt.title('SQUID_INK Price and 5-Period Moving Average')
+# plt.legend()
+# plt.grid(True)
+# plt.show()
 
 # Drop rows with NaN values in rolling_avg_5
 valid_data = squid_ink_data.dropna(subset=['rolling_avg_5'])
@@ -82,7 +82,7 @@ plt.figure(figsize=(12, 8))
 plt.subplot(2, 1, 1)
 # Only plot positive frequencies on a normal scale
 magnitude = np.abs(fft_result[:N//2])
-plt.plot(freq[:N//2], magnitude)
+plt.semilogy(freq[:N//2], magnitude)
 plt.title('FFT Magnitude Spectrum of SQUID_INK Prices (Log Scale)')
 plt.xlabel('Frequency (1/time unit)')
 plt.ylabel('Magnitude (log scale)')
@@ -98,7 +98,7 @@ for idx in dominant_indices:
                  verticalalignment='bottom')
 
 # For DTFT, we'll use a more efficient method focusing on lower frequencies
-dtft_freq = np.linspace(0, 0.2, 500)  # Focus on lower frequencies (0 to 0.2)
+dtft_freq = np.linspace(-200,200, 100000)  # Focus on lower frequencies (0 to 0.2)
 dtft_result = np.zeros(len(dtft_freq), dtype=complex)
 
 # More efficient DTFT computation
@@ -128,13 +128,13 @@ plt.subplots_adjust(bottom=0.15)
 plt.show()
 
 # Optional: Add autocorrelation analysis which can be easier to interpret
-plt.figure(figsize=(10, 5))
-acf = np.correlate(prices - np.mean(prices), prices - np.mean(prices), mode='full')
-acf = acf[N-1:] / acf[N-1]  # Normalize
-lags = np.arange(len(acf))
-plt.stem(lags, acf, markerfmt='ro', basefmt='b-')
-plt.title('Autocorrelation of SQUID_INK Prices')
-plt.xlabel('Lag')
-plt.ylabel('Correlation')
-plt.grid(True)
-plt.show()
+# plt.figure(figsize=(10, 5))
+# acf = np.correlate(prices - np.mean(prices), prices - np.mean(prices), mode='full')
+# acf = acf[N-1:] / acf[N-1]  # Normalize
+# lags = np.arange(len(acf))
+# plt.stem(lags, acf, markerfmt='ro', basefmt='b-')
+# plt.title('Autocorrelation of SQUID_INK Prices')
+# plt.xlabel('Lag')
+# plt.ylabel('Correlation')
+# plt.grid(True)
+# plt.show()
