@@ -275,7 +275,7 @@ class Trader:
             orders.append(Order(symbol, buy_at_less_than-1, POS_LIMITS[symbol]-position))
         return orders
     
-    def run_squid_ink(self, order_depths: OrderDepth, position: Position, last_n_plus_3_trades_inp) -> List[Order]:
+    def run_squid_ink(self, order_depths: OrderDepth, position: Position, last_n_plus_10_trades_inp) -> List[Order]:
 
         symbol = "SQUID_INK"
         orders: List[Order] = []
@@ -537,20 +537,20 @@ class Trader:
         intercept = 1197.4828546444014
 
         import copy 
-        last_n_plus_3_trades = copy.deepcopy(last_n_plus_3_trades_inp)
+        last_n_plus_10_trades = copy.deepcopy(last_n_plus_10_trades_inp)
 
                                                                         # <Damping outliers>
-        for i in range(10, len(last_n_plus_3_trades)):
+        for i in range(10, len(last_n_plus_10_trades)):
             summ = 0
             for j in range(10):
-                summ += last_n_plus_3_trades[i-j]
+                summ += last_n_plus_10_trades[i-j]
 
-            if abs(last_n_plus_3_trades[i]-summ/10) > threshold:
-                last_n_plus_3_trades[i] = summ/10 + threshold*(last_n_plus_3_trades[i]-summ/10)/abs(last_n_plus_3_trades[i]-summ/10)
+            if abs(last_n_plus_10_trades[i]-summ/10) > threshold:
+                last_n_plus_10_trades[i] = summ/10 + threshold*(last_n_plus_10_trades[i]-summ/10)/abs(last_n_plus_10_trades[i]-summ/10)
 
                                                                         # </Damping outliers>
 
-        last_n_trades = last_n_plus_3_trades[-n:]
+        last_n_trades = last_n_plus_10_trades[-n:]
                                                                     # </n dependent variables>
 
         prediction = intercept
