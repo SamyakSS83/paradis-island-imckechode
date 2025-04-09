@@ -82,14 +82,14 @@ class Trade:
 class TradingState(object):
 
     def __init__(self,
-                 traderData: str,
-                 timestamp: Time,
-                 listings: Dict[Symbol, Listing],
-                 order_depths: Dict[Symbol, OrderDepth],
-                 own_trades: Dict[Symbol, List[Trade]],
-                 market_trades: Dict[Symbol, List[Trade]],
-                 position: Dict[Product, Position],
-                 observations: Observation):
+                traderData: str,
+                timestamp: Time,
+                listings: Dict[Symbol, Listing],
+                order_depths: Dict[Symbol, OrderDepth],
+                own_trades: Dict[Symbol, List[Trade]],
+                market_trades: Dict[Symbol, List[Trade]],
+                position: Dict[Product, Position],
+                observations: Observation):
         self.traderData = traderData
         self.timestamp = timestamp
         self.listings = listings

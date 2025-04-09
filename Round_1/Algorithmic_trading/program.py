@@ -5,7 +5,7 @@ f=1
 def debug_print(a,f):
     if f:
         print(a)
-POS_LIMITS = {"RAINFOREST_RESIN": 50, "KELP": 50}
+POS_LIMITS = {"RAINFOREST_RESIN": 50, "KELP": 50, "SQUID_INK": 50}
 
 class Logger:
     def __init__(self) -> None:
@@ -536,17 +536,22 @@ class Trader:
 
         intercept = 1197.4828546444014
 
+        if len(last_n_plus_10_mid_prices_inp) < n:
+            return orders
+
         import copy 
         last_n_plus_10_mid_prices = copy.deepcopy(last_n_plus_10_mid_prices_inp)
 
                                                                         # <Damping outliers>
-        for i in range(10, len(last_n_plus_10_mid_prices)):
-            summ = 0
-            for j in range(10):
-                summ += last_n_plus_10_mid_prices[i-j]
 
-            if abs(last_n_plus_10_mid_prices[i]-summ/10) > threshold:
-                last_n_plus_10_mid_prices[i] = summ/10 + threshold*(last_n_plus_10_mid_prices[i]-summ/10)/abs(last_n_plus_10_mid_prices[i]-summ/10)
+        if len(last_n_plus_10_mid_prices) > 10+n:
+            for i in range(10, len(last_n_plus_10_mid_prices)):
+                summ = 0
+                for j in range(10):
+                    summ += last_n_plus_10_mid_prices[i-j]
+
+                if abs(last_n_plus_10_mid_prices[i]-summ/10) > threshold:
+                    last_n_plus_10_mid_prices[i] = summ/10 + threshold*(last_n_plus_10_mid_prices[i]-summ/10)/abs(last_n_plus_10_mid_prices[i]-summ/10)
 
                                                                         # </Damping outliers>
 
@@ -589,15 +594,15 @@ class Trader:
 
 
         if mass_buy:
-            orders.append(Order(symbol, prediction-drop_factor*std_dev, curr_buy_limit))
+            orders.append(Order(symbol, round(prediction-drop_factor*std_dev), curr_buy_limit))
 
         else:
-            orders.append(Order(symbol, prediction-std_dev, curr_buy_limit))        ############################################# tweak buy qty
+            orders.append(Order(symbol, round(prediction-std_dev), curr_buy_limit))        ############################################# tweak buy qty
 
         if mass_sell:
-            orders.append(Order(symbol, prediction+drop_factor*std_dev, curr_sell_limit))
+            orders.append(Order(symbol, round(prediction+drop_factor*std_dev), curr_sell_limit))
         else:
-            orders.append(Order(symbol, prediction+std_dev, curr_sell_limit))       ############################################## tweak sell qty
+            orders.append(Order(symbol, round(prediction+std_dev), curr_sell_limit))       ############################################## tweak sell qty
 
 
         return orders
@@ -614,9 +619,14 @@ class Trader:
         result = {}
         # debug_print(state.traderData, file=open("testing_out.txt","a"))
         if state.traderData != "":
-            last_n_kelp_trades = json.loads(state.traderData)
+            
+            traderData = json.loads(state.traderData)
+            last_n_kelp_trades = traderData.get("KELP", [])
+            last_n_plus_10_squid_ink_mid_prices = traderData.get("SQUID_INK", [])
+
         else:
             last_n_kelp_trades = []
+            last_n_plus_10_squid_ink_mid_prices = []
 
         # conversions = 0
 
@@ -700,12 +710,21 @@ class Trader:
         store_dict = {}
         store_dict["KELP"] = last_n_kelp_trades[-7:]
 
-        store_dict["SQUID_INK"] = []
+
+
+        squid_ink_n = 7
+        # squid_ink_mid_val = (sum(map(lambda x: x[0]*x[1], state.order_depths["SQUID_INK"].buy_orders.items()))+sum(map(lambda x: x[0]*(-x[1]), state.order_depths["SQUID_INK"].sell_orders.items()))) / (sum(map(lambda x: x[1], state.order_depths["SQUID_INK"].buy_orders.items()))+sum(map(lambda x: (-x[1]), state.order_depths["SQUID_INK"].sell_orders.items())))
+        lowest_squid_ink_sell = min(state.order_depths["SQUID_INK"].sell_orders.keys())
+        highest_squid_ink_buy = max(state.order_depths["SQUID_INK"].buy_orders.keys())
+        squid_ink_mid_val = (highest_squid_ink_buy+lowest_squid_ink_sell)/2
+
+        last_n_plus_10_squid_ink_mid_prices.append(squid_ink_mid_val)
+        store_dict["SQUID_INK"] = last_n_plus_10_squid_ink_mid_prices[-squid_ink_n+10:]
 
         
         
         # last_n_kelp_trades.append(mid_val)
-        trader_data = json.dumps(last_n_kelp_trades[-7:])
+        trader_data = json.dumps(store_dict)
         # debug_print("last_n_kelp_trades: ", last_n_kelp_trades, file=open("testing_out.txt", "a"))
         # debug_print("trader_Data: ", trader_data, file=open("testing_out.txt", "a"))
         
