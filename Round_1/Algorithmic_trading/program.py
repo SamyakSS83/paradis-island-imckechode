@@ -275,7 +275,7 @@ class Trader:
             orders.append(Order(symbol, buy_at_less_than-1, POS_LIMITS[symbol]-position))
         return orders
     
-    def run_squid_ink(self, order_depths: OrderDepth, position: Position, last_n_plus_10_trades_inp) -> List[Order]:
+    def run_squid_ink(self, order_depths: OrderDepth, position: Position, last_n_plus_10_mid_prices_inp) -> List[Order]:
 
         symbol = "SQUID_INK"
         orders: List[Order] = []
@@ -537,20 +537,20 @@ class Trader:
         intercept = 1197.4828546444014
 
         import copy 
-        last_n_plus_10_trades = copy.deepcopy(last_n_plus_10_trades_inp)
+        last_n_plus_10_mid_prices = copy.deepcopy(last_n_plus_10_mid_prices_inp)
 
                                                                         # <Damping outliers>
-        for i in range(10, len(last_n_plus_10_trades)):
+        for i in range(10, len(last_n_plus_10_mid_prices)):
             summ = 0
             for j in range(10):
-                summ += last_n_plus_10_trades[i-j]
+                summ += last_n_plus_10_mid_prices[i-j]
 
-            if abs(last_n_plus_10_trades[i]-summ/10) > threshold:
-                last_n_plus_10_trades[i] = summ/10 + threshold*(last_n_plus_10_trades[i]-summ/10)/abs(last_n_plus_10_trades[i]-summ/10)
+            if abs(last_n_plus_10_mid_prices[i]-summ/10) > threshold:
+                last_n_plus_10_mid_prices[i] = summ/10 + threshold*(last_n_plus_10_mid_prices[i]-summ/10)/abs(last_n_plus_10_mid_prices[i]-summ/10)
 
                                                                         # </Damping outliers>
 
-        last_n_trades = last_n_plus_10_trades[-n:]
+        last_n_mid_prices = last_n_plus_10_mid_prices[-n:]
                                                                     # </n dependent variables>
 
         prediction = intercept
@@ -559,37 +559,50 @@ class Trader:
         for i in range(len(powers)):
             value = 1
             for j in range(len(powers[i])):
-                value *= (last_n_trades[j] ** powers[i][j])
+                value *= (last_n_mid_prices[j] ** powers[i][j])
             X.append(value)
 
         for i in range(len(X)):
             prediction += X[i] * coeffs[i]
                                                                 # </predicting market price>
 
-        
-        buy_at_less_than = prediction - 1
-        sell_at_more_than = prediction + 1
+        avg = 0
+        for i in range(n-1):
+            avg+=last_n_mid_prices[i]
+
+        import statistics
+        std_dev = statistics.stdev(last_n_mid_prices[:-1])
+
+        avg/=(n-1)
+
+        mass_buy = False
+        mass_sell = False
+        drop_factor = 1                                     ####################################### TWEAK THIS
+
+        curr_buy_limit = POS_LIMITS[symbol] - position
+        curr_sell_limit = -POS_LIMITS[symbol] - position
+
+        if (last_n_mid_prices[-1] - avg) < - drop_factor*std_dev:
+            mass_buy = True
+        elif (last_n_mid_prices[-1] - avg) > drop_factor*std_dev:
+            mass_sell = True
+
+
+        if mass_buy:
+            orders.append(Order(symbol, prediction-drop_factor*std_dev, curr_buy_limit))
+
+        else:
+            orders.append(Order(symbol, prediction-std_dev, curr_buy_limit))        ############################################# tweak buy qty
+
+        if mass_sell:
+            orders.append(Order(symbol, prediction+drop_factor*std_dev, curr_sell_limit))
+        else:
+            orders.append(Order(symbol, prediction+std_dev, curr_sell_limit))       ############################################## tweak sell qty
+
+
+        return orders
 
         
-
-
-        
-
-
-
-        
-
-        
-
-
-
-
-
-
-
-
-
-
 
 
     def run(self, state: TradingState) -> Dict[str, List[Order]]:
@@ -607,6 +620,9 @@ class Trader:
 
         # conversions = 0
 
+
+
+
         # Iterate over all the keys (the available products) contained in the order dephts
         for product in state.order_depths.keys():
                 if product == "RAINFOREST_RESIN":
@@ -616,6 +632,13 @@ class Trader:
                     result[product] = self.run_kelp(state.order_depths[product] , state.position.get(product, 0), last_n_kelp_trades)
                     # result[product] = self.run_kelp1(state.order_depths[product] , state.position.get(product, 0))
                     continue
+
+                if product == "SQUID_INK":
+                    result[product] = self.run_squid_ink(state.order_depths[product], state.position.get(product, 0), last_n_kelp_trades)
+                    continue
+
+
+
                 # Retrieve the Order Depth containing all the market BUY and SELL orders
                 order_depth: OrderDepth = state.order_depths[product]
 
@@ -674,6 +697,12 @@ class Trader:
         # print("mid_val: ", mid_val, file=open("testing_out.txt", "a"))
         last_n_kelp_trades.append(mid_val)
 
+        store_dict = {}
+        store_dict["KELP"] = last_n_kelp_trades[-7:]
+
+        store_dict["SQUID_INK"] = []
+
+        
         
         # last_n_kelp_trades.append(mid_val)
         trader_data = json.dumps(last_n_kelp_trades[-7:])
