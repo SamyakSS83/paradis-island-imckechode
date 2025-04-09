@@ -307,26 +307,21 @@ class Trader:
             orders.append(Order(symbol, buy_at_less_than-1, POS_LIMITS[symbol]-position))
         return orders
     
-    def run_squid_ink(self, order_depths: OrderDepth, position: Position, last_n_plus_10_mid_prices_inp) -> List[Order]:
+    def run_squid_ink(self, order_depths: OrderDepth, position: Position, last_n_mid_prices_inp) -> List[Order]:
 
         symbol = "SQUID_INK"
         orders: List[Order] = []
-        n = 5         # changeable parameters
+        n = 10         # changeable parameters
         threshold = 10 # changeable parameters
 
-        if len(last_n_plus_10_mid_prices_inp) < n:
-            return orders
-
-        import copy 
-        last_n_plus_10_mid_prices = copy.deepcopy(last_n_plus_10_mid_prices_inp)
 
         with open('esn_model.pkl', 'rb') as f:
             loaded_esn = pickle.load(f)
 
         # Function to make a prediction using the last 5 values
-        def predict_next_value(last_five_values):
+        def predict_next_value(last_ten_values):
             # Reshape input to match what the model expects
-            input_data = np.array(last_five_values).reshape(1, -1)
+            input_data = np.array(last_ten_values).reshape(1, -1)
             
             # Make prediction
             prediction = loaded_esn.predict(input_data)
@@ -334,20 +329,21 @@ class Trader:
             # Return the scalar prediction value
             return prediction[0][0]
                                                               # <Damping outliers>
+        if len(last_n_mid_prices_inp) > n:
+            
+        # if len(last_n_plus_10_mid_prices) > 10+n:
+        #     for i in range(10, len(last_n_plus_10_mid_prices)):
+        #         summ = 0
+        #         for j in range(10):
+        #             summ += last_n_plus_10_mid_prices[i-j]
 
-        if len(last_n_plus_10_mid_prices) > 10+n:
-            for i in range(10, len(last_n_plus_10_mid_prices)):
-                summ = 0
-                for j in range(10):
-                    summ += last_n_plus_10_mid_prices[i-j]
+        #         if abs(last_n_plus_10_mid_prices[i]-summ/10) > threshold:
+        #             last_n_plus_10_mid_prices[i] = summ/10 + threshold*(last_n_plus_10_mid_prices[i]-summ/10)/abs(last_n_plus_10_mid_prices[i]-summ/10)
 
-                if abs(last_n_plus_10_mid_prices[i]-summ/10) > threshold:
-                    last_n_plus_10_mid_prices[i] = summ/10 + threshold*(last_n_plus_10_mid_prices[i]-summ/10)/abs(last_n_plus_10_mid_prices[i]-summ/10)
+        #                                                                 # </Damping outliers>
 
-                                                                        # </Damping outliers>
-
-        last_n_mid_prices = last_n_plus_10_mid_prices[-n:]
-                                                                    # </n dependent variables>
+        # last_n_mid_prices = last_n_plus_10_mid_prices[-n:]
+        #                                                             # </n dependent variables>
 
         # prediction = intercept
 
