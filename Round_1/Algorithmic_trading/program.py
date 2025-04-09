@@ -123,6 +123,36 @@ class Logger:
 
 logger = Logger()
 
+
+traderdata_init = {
+    "KELP" : {
+        "LAST_N_MID_VALUES": [],
+        "LAST_N_WEIGHTED_AVG_VALUES": []
+        },
+
+    "RAINFOREST_RESIN" : {},
+
+    "SQUID_INK" : {
+        "LAST_N_MID_VALUES": []
+        }
+}
+
+params = {
+    "KELP" : {
+        "HISTORY_LENGTH(N)" : 7
+        },
+
+    "RAINFOREST_RESIN" : {
+        "EDGE_FROM_PRED": 1
+    },
+
+    "SQUID_INK" : {
+        "HISTORY_LENGTH(N)" : 7
+        }
+}
+
+
+
 class Trader:
 
     def run_raisin(self, order_depths: OrderDepth, position: Position) -> List[Order]:
@@ -212,7 +242,7 @@ class Trader:
     def run_kelp(self, order_depths: OrderDepth, position: Position, last_n_trades) -> List[Order]:
         symbol = "KELP"
         orders: List[Order] = [];
-        if len(last_n_trades) == 7:
+        if len(last_n_trades) == params["KELP"]["HISTORY_LENGTH(N)"]:
             intercept = 17.317515632852974
             coeffs = [0.02935884,0.03880124,0.06456323,0.1129974,0.11089013,0.25088261,0.38392037]
             # intercept = 17.59482603537458
@@ -607,9 +637,6 @@ class Trader:
 
         return orders
 
-        
-
-
     def run(self, state: TradingState) -> Dict[str, List[Order]]:
         """
         Only method required. It takes all buy and sell orders for all symbols as an input,
@@ -618,20 +645,10 @@ class Trader:
         # Initialize the method output dict as an empty dict
         result = {}
         # debug_print(state.traderData, file=open("testing_out.txt","a"))
-        if state.traderData != "":
-            
-            traderData = json.loads(state.traderData)
-            last_n_kelp_trades = traderData.get("KELP", [])
-            last_n_plus_10_squid_ink_mid_prices = traderData.get("SQUID_INK", [])
-
+        if state.traderData == "":
+            trader_data = traderdata_init
         else:
-            last_n_kelp_trades = []
-            last_n_plus_10_squid_ink_mid_prices = []
-
-        # conversions = 0
-
-
-
+            trader_data = json.loads(state.traderData)
 
         # Iterate over all the keys (the available products) contained in the order dephts
         for product in state.order_depths.keys():
@@ -639,99 +656,34 @@ class Trader:
                     result[product] = self.run_raisin(state.order_depths[product] , state.position.get(product, 0))
                     continue
                 if product == "KELP":
-                    result[product] = self.run_kelp(state.order_depths[product] , state.position.get(product, 0), last_n_kelp_trades)
-                    # result[product] = self.run_kelp1(state.order_depths[product] , state.position.get(product, 0))
+                    result[product] = self.run_kelp(state.order_depths[product] , state.position.get(product, 0), trader_data["KELP"]["LAST_N_MID_VALUES"])
                     continue
-
                 if product == "SQUID_INK":
-                    result[product] = self.run_squid_ink(state.order_depths[product], state.position.get(product, 0), last_n_kelp_trades)
+                    result[product] = self.run_squid_ink(state.order_depths[product], state.position.get(product, 0), trader_data["SQUID_INK"]["LAST_N_MID_VALUES"])
                     continue
-
-
-
-                # Retrieve the Order Depth containing all the market BUY and SELL orders
-                order_depth: OrderDepth = state.order_depths[product]
-
-                # Initialize the list of Orders to be sent as an empty list
-                orders: list[Order] = []
-
-                # Note that this value of 1 is just a dummy value, you should likely change it!
-                acceptable_price = 10000
-
-                # If statement checks if there are any SELL orders in the market
-                if len(order_depth.sell_orders) > 0:
-
-                    # Sort all the available sell orders by their price,
-                    # and select only the sell order with the lowest price
-                    best_ask = min(order_depth.sell_orders.keys())
-                    best_ask_volume = order_depth.sell_orders[best_ask]
-
-                    # Check if the lowest ask (sell order) is lower than the above defined fair value
-                    if best_ask < acceptable_price:
-
-                        # In case the lowest ask is lower than our fair value,
-                        # This presents an opportunity for us to buy cheaply
-                        # The code below therefore sends a BUY order at the price level of the ask,
-                        # with the same quantity
-                        # We expect this order to trade with the sell order
-                        # debug_print("BUY", str(-best_ask_volume) + "x", best_ask)
-                        orders.append(Order(product, best_ask, -best_ask_volume))
-
-                # The below code block is similar to the one above,
-                # the difference is that it find the highest bid (buy order)
-                # If the price of the order is higher than the fair value
-                # This is an opportunity to sell at a premium
-                if len(order_depth.buy_orders) != 0:
-                    best_bid = max(order_depth.buy_orders.keys())
-                    best_bid_volume = order_depth.buy_orders[best_bid]
-                    if best_bid > acceptable_price:
-                        # debug_print("SELL", str(best_bid_volume) + "x", best_bid)
-                        orders.append(Order(product, best_bid, -best_bid_volume))
-
-                # Add all the above the orders to the result dict
-                result[product] = orders
         
-        # kelp_trades: List[Trade] = state.market_trades.get("KELP", [])
-        # kelp_trades.sort(key=lambda x: x.timestamp, reverse=True)
-        # if len(kelp_trades) >= 5:
-        #     trader_data = json.dumps(map(lambda x: [x.price, x.quantity, x.timestamp], kelp_trades[:5]))
-        # else:
-        #     # trader_data = "SomethingHere"
-        #     trader_data = json.dumps(list(map(lambda x: [x.price, x.quantity, x.timestamp], kelp_trades))+last_n_kelp_trades[:5-len(kelp_trades)])
-
         # highest_kelp_buy = max(state.order_depths["KELP"].buy_orders.keys())
         # lowest_kelp_sell = min(state.order_depths["KELP"].sell_orders.keys())
         # mid_val = (highest_kelp_buy+lowest_kelp_sell)/2
         
-        mid_val = (sum(map(lambda x: x[0]*x[1], state.order_depths["KELP"].buy_orders.items()))+sum(map(lambda x: x[0]*(-x[1]), state.order_depths["KELP"].sell_orders.items()))) / (sum(map(lambda x: x[1], state.order_depths["KELP"].buy_orders.items()))+sum(map(lambda x: (-x[1]), state.order_depths["KELP"].sell_orders.items())))
-        # print("mid_val: ", mid_val, file=open("testing_out.txt", "a"))
-        last_n_kelp_trades.append(mid_val)
+        weighted_avg_kelp = (sum(map(lambda x: x[0]*x[1], state.order_depths["KELP"].buy_orders.items()))+sum(map(lambda x: x[0]*(-x[1]), state.order_depths["KELP"].sell_orders.items()))) / (sum(map(lambda x: x[1], state.order_depths["KELP"].buy_orders.items()))+sum(map(lambda x: (-x[1]), state.order_depths["KELP"].sell_orders.items())))
+        trader_data["KELP"]["LAST_N_WEIGHTED_AVG_VALUES"].append(weighted_avg_kelp)
 
-        store_dict = {}
-        store_dict["KELP"] = last_n_kelp_trades[-7:]
-
+        n = params["KELP"]["HISTORY_LENGTH(N)"]
+        trader_data["KELP"]["LAST_N_WEIGHTED_AVG_VALUES"]=trader_data["KELP"]["LAST_N_WEIGHTED_AVG_VALUES"][-n:]
 
 
-        squid_ink_n = 7
+        n = params["SQUID_INK"]["HISTORY_LENGTH(N)"]
         # squid_ink_mid_val = (sum(map(lambda x: x[0]*x[1], state.order_depths["SQUID_INK"].buy_orders.items()))+sum(map(lambda x: x[0]*(-x[1]), state.order_depths["SQUID_INK"].sell_orders.items()))) / (sum(map(lambda x: x[1], state.order_depths["SQUID_INK"].buy_orders.items()))+sum(map(lambda x: (-x[1]), state.order_depths["SQUID_INK"].sell_orders.items())))
         lowest_squid_ink_sell = min(state.order_depths["SQUID_INK"].sell_orders.keys())
         highest_squid_ink_buy = max(state.order_depths["SQUID_INK"].buy_orders.keys())
         squid_ink_mid_val = (highest_squid_ink_buy+lowest_squid_ink_sell)/2
 
-        last_n_plus_10_squid_ink_mid_prices.append(squid_ink_mid_val)
-        store_dict["SQUID_INK"] = last_n_plus_10_squid_ink_mid_prices[-squid_ink_n+10:]
+        trader_data["SQUID_INK"]["LAST_N_MID_VALUES"].append(squid_ink_mid_val)
+        trader_data["SQUID_INK"]["LAST_N_MID_VALUES"] =  trader_data["SQUID_INK"]["LAST_N_MID_VALUES"][-n:]
 
-        
-        
-        # last_n_kelp_trades.append(mid_val)
-        trader_data = json.dumps(store_dict)
-        # debug_print("last_n_kelp_trades: ", last_n_kelp_trades, file=open("testing_out.txt", "a"))
-        # debug_print("trader_Data: ", trader_data, file=open("testing_out.txt", "a"))
-        
+
+        trader_data = json.dumps(trader_data)
         conversions = 1 
-
-                # Return the dict of orders
-                # These possibly contain buy or sell orders
-                # Depending on the logic above
         logger.flush(state, result, conversions, trader_data)
         return result, conversions, trader_data
