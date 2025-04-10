@@ -610,26 +610,26 @@ class Trader:
 
         avg/=(n-1)
 
-        mass_buy = False
-        mass_sell = False
+        going_down = False
+        going_up = False
         drop_factor = 1                                     ####################################### TWEAK THIS
 
         curr_buy_limit = POS_LIMITS[symbol] - position
         curr_sell_limit = -POS_LIMITS[symbol] - position
 
         if (last_n_mid_prices[-1] - avg) < - drop_factor*std_dev:
-            mass_buy = True
+            going_down = True
         elif (last_n_mid_prices[-1] - avg) > drop_factor*std_dev:
-            mass_sell = True
+            going_up = True
 
 
-        if mass_buy:
+        if going_down:
             orders.append(Order(symbol, round(prediction-drop_factor*std_dev), curr_buy_limit))
 
         else:
             orders.append(Order(symbol, round(prediction-std_dev), curr_buy_limit))        ############################################# tweak buy qty
 
-        if mass_sell:
+        if going_up:
             orders.append(Order(symbol, round(prediction+drop_factor*std_dev), curr_sell_limit))
         else:
             orders.append(Order(symbol, round(prediction+std_dev), curr_sell_limit))       ############################################## tweak sell qty
