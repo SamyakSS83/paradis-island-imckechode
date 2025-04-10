@@ -74,17 +74,6 @@ squid_ink_weighted_mean = (
 print(squid_ink_weighted_mean)
 
 
-# plt.figure(figsize=(10, 6))
-# # plt.plot(kelp_x, kelp_y, label='Kelp', color='green')
-# # plt.plot(resin_x, resin_y, label='Rainforest Resin', color='blue')
-# # plt.plot(squid_ink_x, squid_ink_y, label='Squid Ink', color='purple')
-# plt.plot(squid_ink_x, squid_ink_weighted_mean, label='Weighted squid ink price', color='green')
-# plt.xlabel('Timestamp')
-# plt.ylabel('Mid Price')
-# plt.title('Mid Price of Products Over Time')
-# plt.legend()
-# plt.show()
-
 
 
 
@@ -119,8 +108,8 @@ esn = ESN(n_inputs=10, n_outputs=1, n_reservoir=200, spectral_radius=1.2, sparsi
 # Train the ESN and discard the predictions returned by fit
 esn.fit(X_train, y_train)
 
-with open('esn_model.pkl', 'rb') as f:
-    loaded_esn = pickle.load(f)
+with open('esn_model.pkl', 'wb') as f:
+    pickle.dump(esn, f)
 
 # Then make predictions separately
 y_pred_esn = esn.predict(X_test)
@@ -137,3 +126,4 @@ plt.plot(y_pred_esn, label='ESN Predicted', alpha=0.7)
 plt.legend()
 plt.title("Echo State Network")
 plt.show()
+

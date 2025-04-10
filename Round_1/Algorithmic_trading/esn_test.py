@@ -149,7 +149,7 @@ params = {
     },
 
     "SQUID_INK" : {
-        "HISTORY_LENGTH(N)" : 7
+        "HISTORY_LENGTH(N)" : 10
         }
 }
 
@@ -307,21 +307,26 @@ class Trader:
             orders.append(Order(symbol, buy_at_less_than-1, POS_LIMITS[symbol]-position))
         return orders
     
-    def run_squid_ink(self, order_depths: OrderDepth, position: Position, last_n_mid_prices_inp) -> List[Order]:
+    def run_squid_ink(self, order_depths: OrderDepth, position: Position, last_n_plus_10_mid_prices_inp) -> List[Order]:
 
         symbol = "SQUID_INK"
         orders: List[Order] = []
-        n = 10         # changeable parameters
+        n = 5         # changeable parameters
         threshold = 10 # changeable parameters
 
+        if len(last_n_plus_10_mid_prices_inp) < n:
+            return orders
+
+        import copy 
+        last_n_plus_10_mid_prices = copy.deepcopy(last_n_plus_10_mid_prices_inp)
 
         with open('esn_model.pkl', 'rb') as f:
             loaded_esn = pickle.load(f)
 
         # Function to make a prediction using the last 5 values
-        def predict_next_value(last_ten_values):
+        def predict_next_value(last_five_values):
             # Reshape input to match what the model expects
-            input_data = np.array(last_ten_values).reshape(1, -1)
+            input_data = np.array(last_five_values).reshape(1, -1)
             
             # Make prediction
             prediction = loaded_esn.predict(input_data)
@@ -329,21 +334,20 @@ class Trader:
             # Return the scalar prediction value
             return prediction[0][0]
                                                               # <Damping outliers>
-        if len(last_n_mid_prices_inp) > n:
-            
-        # if len(last_n_plus_10_mid_prices) > 10+n:
-        #     for i in range(10, len(last_n_plus_10_mid_prices)):
-        #         summ = 0
-        #         for j in range(10):
-        #             summ += last_n_plus_10_mid_prices[i-j]
 
-        #         if abs(last_n_plus_10_mid_prices[i]-summ/10) > threshold:
-        #             last_n_plus_10_mid_prices[i] = summ/10 + threshold*(last_n_plus_10_mid_prices[i]-summ/10)/abs(last_n_plus_10_mid_prices[i]-summ/10)
+        if len(last_n_plus_10_mid_prices) > 10+n:
+            for i in range(10, len(last_n_plus_10_mid_prices)):
+                summ = 0
+                for j in range(10):
+                    summ += last_n_plus_10_mid_prices[i-j]
 
-        #                                                                 # </Damping outliers>
+                if abs(last_n_plus_10_mid_prices[i]-summ/10) > threshold:
+                    last_n_plus_10_mid_prices[i] = summ/10 + threshold*(last_n_plus_10_mid_prices[i]-summ/10)/abs(last_n_plus_10_mid_prices[i]-summ/10)
 
-        # last_n_mid_prices = last_n_plus_10_mid_prices[-n:]
-        #                                                             # </n dependent variables>
+                                                                        # </Damping outliers>
+
+        last_n_mid_prices = last_n_plus_10_mid_prices[-n:]
+                                                                    # </n dependent variables>
 
         # prediction = intercept
 
@@ -395,6 +399,48 @@ class Trader:
 
 
         return orders
+    
+    def squid_ink(self, order_depths: OrderDepth, position: Position, last_n_plus_10_mid_prices_inp) -> List[Order]:
+        symbol = "SQUID_INK"
+        orders: List[Order] = []
+        n = 10         # changeable parameters
+        # Log the size and type of input values
+        with open('out.txt', 'a') as f:
+            f.write(f"last_n_plus_10_mid_prices_inp length: {len(last_n_plus_10_mid_prices_inp)}\n")
+            f.write(f"last_n_plus_10_mid_prices_inp type: {type(last_n_plus_10_mid_prices_inp)}\n")
+            f.write(f"values: {last_n_plus_10_mid_prices_inp}\n")
+            f.write("-"*50 + "\n")
+        if len(last_n_plus_10_mid_prices_inp) < n:
+            return orders
+        # with open('out.txt', 'a') as f:
+
+        #     f.write("maaaa mat chuda\n")
+        last_n_mid_prices = last_n_plus_10_mid_prices_inp[-n:]
+        
+
+        # Function to make a prediction using the last 5 values
+        def predict_next_value(last_five_values):
+            with open('esn_model.pkl', 'rb') as f1:
+                loaded_esn = pickle.load(f1)
+            # Reshape input to match what the model expects
+            # with open('out.txt', 'a') as f:
+
+            #     f.write(f"last_five_values length: {len(last_five_values)}\n")
+            input_data = np.array(last_five_values).reshape(1, -1)
+            # with open('out.txt', 'a') as f:
+            #     f.write("maaaaaaaaa chuda\n")
+            # Make prediction
+            prediction = loaded_esn.predict(input_data)
+            
+            # Return the scalar prediction value
+            return prediction[0][0]
+        
+        prediction = predict_next_value(last_n_mid_prices)
+        curr_buy_limit = POS_LIMITS[symbol] - position
+        curr_sell_limit = -POS_LIMITS[symbol] - position
+        orders.append(Order(symbol, round(prediction)-4, curr_buy_limit))
+        orders.append(Order(symbol, round(prediction)+3, curr_sell_limit))
+        return orders
 
     def run(self, state: TradingState) -> Dict[str, List[Order]]:
         """
@@ -418,7 +464,7 @@ class Trader:
                     result[product] = self.run_kelp(state.order_depths[product] , state.position.get(product, 0), trader_data["KELP"]["LAST_N_MID_VALUES"])
                     continue
                 if product == "SQUID_INK":
-                    result[product] = self.run_squid_ink(state.order_depths[product], state.position.get(product, 0), trader_data["SQUID_INK"]["LAST_N_MID_VALUES"])
+                    result[product] = self.squid_ink(state.order_depths[product], state.position.get(product, 0), trader_data["SQUID_INK"]["LAST_N_MID_VALUES"])
                     continue
         
         # highest_kelp_buy = max(state.order_depths["KELP"].buy_orders.keys())
